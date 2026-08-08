@@ -22,10 +22,6 @@ The current publication candidate passed locked dependency sync, Ruff, strict My
 
 This project is a bounded Phase 0B simulation-integrity foundation. It is not presented as a complete generalized experiment platform, production prediction service, or evidence of live deployment, adoption, or external validation.
 
-## Ownership
-
-This is a personal technical project by [Mike “Mizzy” Barrera](https://github.com/mizzysworld). ORDIN’s organization-owned Agent Control Room and zKYC Core systems remain under [ordin-systems](https://github.com/ordin-systems).
-
 ## Planned public release gates
 
 - Public-safe fresh-history package
