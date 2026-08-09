@@ -316,6 +316,11 @@ def test_forged_public_results_fail_closed(toy_event: Event) -> None:
     with pytest.raises(ValidationError, match="settlement evidence order"):
         OfficialClassification.model_validate(equal_lap_swap)
 
+    duplicate_crossing = result.model_dump()
+    duplicate_crossing["entries"][1]["same_lap_crossing_order"] = 1
+    with pytest.raises(ValidationError, match="crossing evidence must be unique and contiguous"):
+        OfficialClassification.model_validate(duplicate_crossing)
+
     def recorded(penalty_id: str, applied_order: int) -> dict[str, object]:
         return {
             "penalty_id": penalty_id,

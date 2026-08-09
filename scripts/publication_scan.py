@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import json
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -17,7 +18,6 @@ IGNORED_PARTS = {
     ".pytest_cache",
     ".ruff_cache",
     ".venv",
-    "__pycache__",
     "build",
     "dist",
 }
@@ -49,9 +49,22 @@ BLOCKED_ATTRIBUTES = {
 
 
 def scanned_files() -> list[Path]:
+    tracked: set[Path] | None = None
+    if (ROOT / ".git").exists():
+        result = subprocess.run(
+            ["git", "ls-files", "-z"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        )
+        tracked = {
+            Path(item.decode()) for item in result.stdout.split(b"\0") if item
+        }
     files: list[Path] = []
     for path in sorted(ROOT.rglob("*")):
         relative = path.relative_to(ROOT)
+        if "__pycache__" in relative.parts and tracked is not None and relative not in tracked:
+            continue
         if any(part in IGNORED_PARTS for part in relative.parts):
             continue
         if path.is_symlink():

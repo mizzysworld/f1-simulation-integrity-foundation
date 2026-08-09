@@ -372,6 +372,18 @@ class OfficialClassification(StrictModel):
         penalties = [penalty for entry in self.entries for penalty in entry.penalties]
         if sum(penalty.affects_current_race for penalty in penalties) > 1:
             raise ValueError("multiple current-race penalties are outside the bounded contract")
+        evidence_groups: dict[int, list[ClassificationEntry]] = {}
+        for entry in self.entries:
+            if entry.start_status != StartStatus.DNS:
+                evidence_groups.setdefault(entry.complete_laps, []).append(entry)
+        for evidence_group in evidence_groups.values():
+            if len(evidence_group) < 2:
+                continue
+            crossing_values = [entry.same_lap_crossing_order for entry in evidence_group]
+            if any(value is None for value in crossing_values) or sorted(
+                value for value in crossing_values if value is not None
+            ) != list(range(1, len(evidence_group) + 1)):
+                raise ValueError("crossing evidence must be unique and contiguous")
         groups: dict[int, list[ClassificationEntry]] = {}
         for entry in ordered:
             groups.setdefault(entry.complete_laps, []).append(entry)
