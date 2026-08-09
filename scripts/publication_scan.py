@@ -26,7 +26,7 @@ BLOCKED_NAMES = {"credentials.json", "token.json", ".ds_store", ".env"}
 TEXT_PATTERNS = {
     "absolute macOS user path": re.compile(r"/Users/[A-Za-z0-9._-]+/"),
     "absolute Linux home path": re.compile(r"/home/[A-Za-z0-9._-]+/"),
-    "absolute Windows user path": re.compile(r"[A-Za-z]:\\\\Users\\\\"),
+    "absolute Windows user path": re.compile(r"[A-Za-z]:\\Users\\"),
     "GitHub token": re.compile(r"\b(?:gh[opsu]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
     "AWS access key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     "private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
@@ -57,7 +57,7 @@ def ignored_generated_path(relative: Path) -> bool:
 
 def validate_tracked_path(path: Path) -> None:
     relative = path.relative_to(ROOT)
-    if ignored_generated_path(relative):
+    if "__pycache__" in relative.parts or ignored_generated_path(relative):
         raise ValueError(f"tracked generated path is not publishable: {relative}")
 
 
