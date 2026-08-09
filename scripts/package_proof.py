@@ -44,6 +44,12 @@ def validate_wheel_member(member: zipfile.ZipInfo) -> None:
         raise ValueError(f"unsafe wheel member type: {member.filename}")
 
 
+def validate_sdist_member(member: tarfile.TarInfo) -> None:
+    validate_name(member.name)
+    if not (member.isfile() or member.isdir()):
+        raise ValueError(f"unsafe source-archive member type: {member.name}")
+
+
 def main() -> int:
     wheels = sorted(DIST.glob("*.whl"))
     sdists = sorted(DIST.glob("*.tar.gz"))
@@ -56,9 +62,7 @@ def main() -> int:
     with tarfile.open(sdists[0], "r:gz") as archive:
         sdist_members = archive.getmembers()
         for member in sdist_members:
-            validate_name(member.name)
-            if member.issym() or member.islnk() or member.isdev():
-                raise ValueError(f"unsafe source archive member type: {member.name}")
+            validate_sdist_member(member)
     print(
         json.dumps(
             {

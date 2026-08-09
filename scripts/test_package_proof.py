@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import stat
+import tarfile
 import zipfile
 
 import package_proof
@@ -35,7 +36,15 @@ def main() -> None:
         pass
     else:
         raise AssertionError("package proof failed open for wheel symlink member")
-    print("package proof self-test: PASS (10/10)")
+    unknown = tarfile.TarInfo("safe/unknown")
+    unknown.type = b"Z"
+    try:
+        package_proof.validate_sdist_member(unknown)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("package proof failed open for unknown sdist member type")
+    print("package proof self-test: PASS (11/11)")
 
 
 if __name__ == "__main__":
