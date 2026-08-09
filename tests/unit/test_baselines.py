@@ -7,6 +7,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
+import f1sim
 from f1sim.models.baselines import (
     equal_strength,
     grid_only,
@@ -52,6 +53,7 @@ def dynamic_event(size: int) -> Event:
 
 @pytest.mark.parametrize("size", [2, 3, 5, 10, 22, 24])
 def test_all_baselines_use_dynamic_canonical_contract(size: int) -> None:
+    assert f1sim.__version__ == "0.1.0"
     event = dynamic_event(size)
     strengths = {entrant.team_id: float(index) for index, entrant in enumerate(event.entrants)}
     for result in (
