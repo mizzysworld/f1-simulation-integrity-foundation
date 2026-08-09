@@ -1,0 +1,20 @@
+{
+  "event": {
+    "event_id": "synthetic-toy-2026", "name": "Synthetic Toy GP", "event_date": "2026-01-01",
+    "circuit": {"circuit_id": "toy", "name": "Toy Circuit", "scheduled_laps": 10},
+    "ruleset": {"ruleset_id": "fia-f1-2026-section-b-issue-07", "source_url": "https://fia.example/rules.pdf", "issue": "07", "publication_date": "2026-06-25", "effective_event_range": "2026-current"},
+    "entrants": [
+      {"entrant_id":"car-1","driver_name":"Driver 1","team_id":"t1","assumed_start_location":"grid","grid_position":1},
+      {"entrant_id":"car-2","driver_name":"Driver 2","team_id":"t1","assumed_start_location":"pit_lane","grid_position":null},
+      {"entrant_id":"car-3","driver_name":"Driver 3","team_id":"t2","assumed_start_location":"grid","grid_position":3},
+      {"entrant_id":"car-4","driver_name":"Driver 4","team_id":"t2","assumed_start_location":"known_dns","grid_position":null}
+    ], "is_synthetic": true
+  },
+  "entries": [
+    {"entrant_id":"car-1","start_status":"grid_start","terminal_physical_status":"running_at_finish","complete_laps":10,"same_lap_crossing_order":1,"elapsed_seconds":600,"penalties":[]},
+    {"entrant_id":"car-2","start_status":"pit_lane_start","terminal_physical_status":"running_at_finish","complete_laps":10,"same_lap_crossing_order":2,"elapsed_seconds":605,"penalties":[]},
+    {"entrant_id":"car-3","start_status":"grid_start","terminal_physical_status":"retired","complete_laps":9,"same_lap_crossing_order":3,"elapsed_seconds":null,"penalties":[]},
+    {"entrant_id":"car-4","start_status":"dns","terminal_physical_status":"did_not_physically_start","complete_laps":0,"same_lap_crossing_order":null,"elapsed_seconds":null,"penalties":[]}
+  ],
+  "official_winner_laps": 10
+}

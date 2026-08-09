@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling==1.31.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "f1-simulation-integrity-foundation"
+version = "0.1.0"
+description = "Bounded deterministic simulation-integrity and publication-evidence reference"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = ["pydantic>=2.13,<3"]
+
+[dependency-groups]
+dev = [
+  "hypothesis>=6.157,<7",
+  "mypy>=2.3,<3",
+  "pytest>=9.1,<10",
+  "ruff>=0.15,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/f1sim"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/docs",
+  "/scripts",
+  "/README.md",
+  "/CLAIMS_AND_LIMITATIONS.md",
+  "/PROVENANCE.md",
+  "/REPRODUCIBILITY.md",
+  "/SECURITY.md",
+  "/UNLICENSED",
+  "/pyproject.toml",
+  "/uv.lock",
+]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false

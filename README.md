@@ -1,32 +1,48 @@
 # F1 Simulation Integrity Foundation
 
-**Reproducibility and Publication-Integrity Infrastructure**
+**Deterministic simulation-integrity and publication-evidence reference**
 
-> **Publication status:** Evidence landing page. A public-safe source package, public CI, reproducibility documentation, and a versioned evidence release are being prepared. This repository does not yet contain the public source package.
+> **Status:** public Phase 0B.2 reference candidate. The branch contains the bounded source, synthetic fixtures, locked dependencies, public CI, reproducibility instructions and fail-closed publication checks required for independent review.
 
-F1 Simulation Integrity Foundation is a bounded simulation-integrity project developed in an F1 prediction context. It demonstrates transferable engineering for traceable baseline runs, cutoff-bound data handling, deterministic artifacts, and publication integrity without disguising the project’s original domain.
+This project demonstrates transferable engineering for traceable baseline runs, cutoff-bound data handling, deterministic artifacts and publication integrity in an F1 prediction context.
 
-## Locally verified scope being prepared for publication
+## What this reference demonstrates
 
-- Canonical typed inputs and strict prediction/settlement contracts
-- Cutoff-bound, content-addressed source snapshots
-- Three deterministic baselines
-- Stable input and output hashes
-- Structured run receipts
-- Rollback-safe, non-overwriting artifact publication
-- Fail-closed checks for future-data leakage, snapshot tampering, impossible settlement states, synthetic-result publication, receipt/output mismatch, and competing publication destinations
+- Strict typed event, entrant, ruleset, prediction, settlement and receipt contracts.
+- Cutoff-bound, content-addressed snapshots published only after complete durable writes.
+- Rejection of future-leaking records, non-finite values, unsupported objects, symlinks and tampered snapshot files.
+- Three transparent deterministic baselines: equal strength, grid only and team-priority-then-grid.
+- Stable canonical input and prediction hashes independent of dictionary insertion order.
+- Probability forecasts reject contradictory marginals and over-subscribed position columns.
+- Synthetic identity bound from event through snapshot, prediction and receipt.
+- Synthetic-result publication rejected even when caller-controlled flags are forged.
+- Receipt IDs derived from canonical receipt content and restricted to safe path components.
+- Atomic, non-overwriting, read-only prediction/receipt bundles with tamper-evident loading.
+- Fail-closed settlement that retains and revalidates same-lap crossing/timing evidence.
 
-The current publication candidate passed locked dependency sync, Ruff, strict MyPy across 13 source files, Hypothesis-backed property tests, and 51 tests during isolated local verification. Those results are not yet independently reproducible from this repository; source, locked dependencies, CI, commands, and verification receipts will be added before the public reference release.
+## Verify
 
-## Claim boundary
+Requires Python `3.12`, `3.13` or `3.14` and [uv](https://docs.astral.sh/uv/).
 
-This project is a bounded Phase 0B simulation-integrity foundation. It is not presented as a complete generalized experiment platform, production prediction service, or evidence of live deployment, adoption, or external validation.
+```bash
+uv sync --locked --all-groups
+uv run ruff check .
+uv run mypy src tests
+uv run pytest -q
+uv run python scripts/publication_scan.py
+uv build
+```
 
-## Planned public release gates
+The behavioral suite contains **51 tests**. CI runs the complete gate on Python 3.12, 3.13 and 3.14 from the locked dependency graph.
 
-- Public-safe fresh-history package
-- Rights, secret, private-path, and dependency review
-- Clean locked setup
-- Ruff, strict MyPy, complete test suite, and public CI
-- Reproducibility and limitations documentation
-- Versioned verification receipt and release snapshot
+See [Reproducibility](REPRODUCIBILITY.md), [requirements traceability](docs/requirements-traceability.md), [behavioral verification](docs/behavioral-verification-map.md), and [claims and limitations](CLAIMS_AND_LIMITATIONS.md).
+
+## Boundary
+
+This is a bounded synthetic reference, not a production prediction service, generalized experiment platform, validated forecasting model, betting system, live data integration or evidence of deployment, adoption, or external validation.
+
+No FIA documents, internal strategy documents, credentials, private paths, generated office files, historical datasets or private implementation history are included.
+
+## Rights
+
+`UNLICENSED` — all rights reserved. No permission to copy, modify, distribute or use is granted except by written authorization from the rights holder.
