@@ -26,7 +26,9 @@ BLOCKED_NAMES = {"credentials.json", "token.json", ".ds_store", ".env"}
 TEXT_PATTERNS = {
     "absolute macOS user path": re.compile(r"/Users/[A-Za-z0-9._-]+/"),
     "absolute Linux home path": re.compile(r"/home/[A-Za-z0-9._-]+/"),
-    "absolute Windows user path": re.compile(r"[A-Za-z]:\\Users\\"),
+    "absolute Windows user path": re.compile(
+        r"[A-Za-z]:[\\/]+Users[\\/]+", re.IGNORECASE
+    ),
     "GitHub token": re.compile(r"\b(?:gh[opsu]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
     "AWS access key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     "private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),

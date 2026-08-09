@@ -55,7 +55,13 @@ def main() -> None:
         expect_failure(
             "Windows private path",
             lambda root: (root / "README.md").write_text(
-                "C:\\Users\\example\\private\\data.csv\n", encoding="utf-8"
+                "C:" + "\\Users\\example\\private\\data.csv\n", encoding="utf-8"
+            ),
+        )
+        expect_failure(
+            "case-insensitive Windows private path with forward slashes",
+            lambda root: (root / "README.md").write_text(
+                "c:" + "/users/example/private/data.csv\n", encoding="utf-8"
             ),
         )
         expect_failure(
@@ -100,7 +106,7 @@ def main() -> None:
             raise AssertionError("tracked __pycache__ content was silently ignored")
     finally:
         publication_scan.ROOT = original_root
-    print("publication scan self-test: PASS (10/10)")
+    print("publication scan self-test: PASS (11/11)")
 
 
 if __name__ == "__main__":
