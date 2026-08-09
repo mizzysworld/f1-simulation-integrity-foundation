@@ -148,3 +148,28 @@ def test_prediction_distributions_match_event_entrant_set(toy_event: Event) -> N
         row["position_probabilities"] = first_position
     with pytest.raises(ValidationError, match="position column"):
         CanonicalPrediction.model_validate(impossible)
+
+
+def test_prediction_rejects_did_not_start_mass_with_classified_position_mass() -> None:
+    prediction = equal_strength(dynamic_event(2))
+    payload = prediction.model_dump()
+    payload["distributions"][0].update(
+        completion_probability=0.0,
+        retirement_probability=0.0,
+        physical_status_probabilities=(0.0, 0.0, 1.0),
+    )
+    with pytest.raises(ValidationError, match="did-not-start probability"):
+        CanonicalPrediction.model_validate(payload)
+
+
+def test_prediction_rejects_noncontiguous_position_occupancy_marginals() -> None:
+    prediction = equal_strength(dynamic_event(2))
+    payload = prediction.model_dump()
+    for row in payload["distributions"]:
+        row.update(
+            position_probabilities=(0.0, 0.5),
+            no_official_position_probability=0.5,
+            classification_status_probabilities=(0.5, 0.5, 0.0),
+        )
+    with pytest.raises(ValidationError, match="non-increasing"):
+        CanonicalPrediction.model_validate(payload)

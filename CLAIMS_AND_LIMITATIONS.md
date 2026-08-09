@@ -14,7 +14,8 @@ This reference supports claims about:
 - content-derived receipt identities and read-only atomic bundle publication;
 - tamper-evident bundle loading with publisher/loader relationship parity through the supplied API;
 - bounded settlement integrity with DQ-inclusive group-local `1..N` crossing order, partial-known elapsed chronology and fail-closed unsupported states;
-- a locked, reproducible 51-test verification gate.
+- coherent physical/classification marginals and contiguous non-increasing position occupancy;
+- a locked, reproducible 53-test verification gate.
 
 ## Explicit non-claims
 

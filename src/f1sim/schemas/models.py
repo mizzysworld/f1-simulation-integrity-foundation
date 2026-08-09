@@ -487,6 +487,15 @@ class EntrantDistribution(StrictModel):
             raise ValueError("completion probability must equal physical running probability")
         if abs(self.retirement_probability - self.physical_status_probabilities[1]) > 1e-9:
             raise ValueError("retirement probability must equal physical retirement probability")
+        did_not_start_probability = self.physical_status_probabilities[2]
+        if did_not_start_probability > self.classification_status_probabilities[1] + 1e-9:
+            raise ValueError(
+                "did-not-start probability cannot exceed unclassified probability"
+            )
+        if did_not_start_probability > self.regulatory_disposition_probabilities[0] + 1e-9:
+            raise ValueError(
+                "did-not-start probability cannot exceed valid regulatory probability"
+            )
         if (
             abs(
                 self.classification_status_probabilities[2]
@@ -593,9 +602,18 @@ class CanonicalPrediction(StrictModel):
             raise ValueError("prediction distributions must match the event entrant set exactly")
         if any(len(d.position_probabilities) != self.field_size for d in self.distributions):
             raise ValueError("position vector must match dynamic field size")
-        for position in range(self.field_size):
-            if sum(row.position_probabilities[position] for row in self.distributions) > 1 + 1e-9:
+        position_occupancy = [
+            sum(row.position_probabilities[position] for row in self.distributions)
+            for position in range(self.field_size)
+        ]
+        for mass in position_occupancy:
+            if mass > 1 + 1e-9:
                 raise ValueError("position column probability mass cannot exceed 1")
+        if any(
+            right > left + 1e-9
+            for left, right in pairwise(position_occupancy)
+        ):
+            raise ValueError("position column occupancy must be non-increasing")
         return self
 
 
