@@ -85,7 +85,7 @@ wheels = [
 
 [[package]]
 name = "f1-simulation-integrity-foundation"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },

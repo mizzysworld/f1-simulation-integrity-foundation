@@ -23,7 +23,7 @@ uv run python scripts/package_proof.py
 Expected behavioral result:
 
 ```text
-51 passed
+55 passed
 ```
 
 ## Determinism boundary
