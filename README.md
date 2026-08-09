@@ -9,15 +9,16 @@ This project demonstrates transferable engineering for traceable baseline runs, 
 ## What this reference demonstrates
 
 - Strict typed event, entrant, ruleset, prediction, settlement and receipt contracts.
-- Cutoff-bound, content-addressed snapshots with canonical JSON identity.
+- Cutoff-bound, content-addressed snapshots published only after complete durable writes.
 - Rejection of future-leaking records, non-finite values, unsupported objects, symlinks and tampered snapshot files.
 - Three transparent deterministic baselines: equal strength, grid only and team-priority-then-grid.
-- Stable canonical input and prediction hashes.
+- Stable canonical input and prediction hashes independent of dictionary insertion order.
+- Probability forecasts reject contradictory marginals and over-subscribed position columns.
 - Synthetic identity bound from event through snapshot, prediction and receipt.
 - Synthetic-result publication rejected even when caller-controlled flags are forged.
-- Receipt IDs restricted to safe path components.
-- Atomic non-overwriting prediction/receipt bundle publication.
-- Fail-closed settlement for unsupported evidence, impossible classifications and out-of-scope penalty combinations.
+- Receipt IDs derived from canonical receipt content and restricted to safe path components.
+- Atomic, non-overwriting, read-only prediction/receipt bundles with tamper-evident loading.
+- Fail-closed settlement that retains and revalidates same-lap crossing/timing evidence.
 
 ## Verify
 

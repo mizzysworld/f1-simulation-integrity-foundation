@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import math
+from itertools import pairwise
 
 from f1sim.schemas import (
     ClassificationEntry,
@@ -46,6 +46,13 @@ def _validate_order(entries: list[RaceStoryEntry]) -> None:
             raise ValueError(
                 "Line-crossing order must be unique and contiguous within each complete-laps group"
             )
+        crossing_order = sorted(group, key=lambda entry: entry.same_lap_crossing_order or 0)
+        elapsed = [entry.elapsed_seconds for entry in crossing_order]
+        concrete_elapsed = [value for value in elapsed if value is not None]
+        if len(concrete_elapsed) == len(elapsed) and any(
+            left > right for left, right in pairwise(concrete_elapsed)
+        ):
+            raise ValueError("elapsed timing contradicts Line-crossing order")
 
 
 def _ordered(entries: list[RaceStoryEntry]) -> list[RaceStoryEntry]:
@@ -96,7 +103,7 @@ def settle(story: DeterministicRaceStory) -> OfficialClassification:
         raise ValueError("settlement requires at least one physical starter")
     _validate_order(active)
     winner_laps = story.official_winner_laps
-    threshold = math.floor(0.9 * winner_laps)
+    threshold = 9 * winner_laps // 10
 
     classified = [entry for entry in active if entry.complete_laps >= threshold]
     classified = [entry for entry in _ordered(classified) if not _is_disqualified(entry)]
@@ -142,6 +149,8 @@ def settle(story: DeterministicRaceStory) -> OfficialClassification:
                 no_position_reason=reason,
                 final_regulatory_disposition=disposition,
                 complete_laps=entry.complete_laps,
+                same_lap_crossing_order=entry.same_lap_crossing_order,
+                elapsed_seconds=entry.elapsed_seconds,
                 penalties=entry.penalties,
             )
         )

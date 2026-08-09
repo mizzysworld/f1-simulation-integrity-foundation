@@ -12,6 +12,7 @@ from f1sim.models.baselines import (
     grid_only,
     team_priority_then_grid,
 )
+from f1sim.reporting.receipt import prediction_hash
 from f1sim.schemas import (
     AssumedStartLocation,
     CanonicalPrediction,
@@ -113,6 +114,14 @@ def test_canonical_input_hash_covers_team_parameters_and_is_stable(toy_event: Ev
     hash_one = team_priority_then_grid(toy_event, first).input_hash
     assert team_priority_then_grid(toy_event, reordered).input_hash == hash_one
     assert team_priority_then_grid(toy_event, changed).input_hash != hash_one
+    prediction = team_priority_then_grid(toy_event, first)
+    payload = prediction.model_dump()
+    parameters = payload["baseline_input"]["model_parameters"]
+    payload["baseline_input"]["model_parameters"] = {
+        key: parameters[key] for key in reversed(parameters)
+    }
+    semantically_identical = CanonicalPrediction.model_validate(payload)
+    assert prediction_hash(semantically_identical) == prediction_hash(prediction)
 
 
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
@@ -129,3 +138,11 @@ def test_prediction_distributions_match_event_entrant_set(toy_event: Event) -> N
     payload["distributions"][0]["entrant_id"] = "not-in-event"
     with pytest.raises(ValidationError, match="event entrant set"):
         CanonicalPrediction.model_validate(payload)
+    impossible = prediction.model_dump()
+    first_position = tuple(
+        1.0 if index == 0 else 0.0 for index in range(prediction.field_size)
+    )
+    for row in impossible["distributions"]:
+        row["position_probabilities"] = first_position
+    with pytest.raises(ValidationError, match="position column"):
+        CanonicalPrediction.model_validate(impossible)

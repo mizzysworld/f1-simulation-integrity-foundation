@@ -8,6 +8,8 @@ Security review applies to the exact public source commit, lockfile, CI run and 
 
 Runtime modules do not execute shell commands, evaluate dynamic code, open network connections, access credentials or ingest arbitrary external archives. Local publication is restricted to validated snapshot, prediction and receipt objects and refuses competing destinations.
 
+Snapshot publication writes and syncs a hidden temporary inode before atomically linking the complete read-only artifact into its canonical path. Existing files are opened once with no-follow semantics and validated through that descriptor. Receipt bundles use canonical content-derived IDs, read-only files, an atomic publication link and a loader that revalidates the bundle relationship. A filesystem owner or administrator can still change local permissions; this is tamper-evident local publication, not protection from a privileged host adversary.
+
 ## Reporting
 
 Report security issues privately to the repository owner. Do not include live credentials, private datasets or personal information in public issues.

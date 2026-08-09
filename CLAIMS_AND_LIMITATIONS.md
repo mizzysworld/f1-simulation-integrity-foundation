@@ -10,7 +10,9 @@ This reference supports claims about:
 - stable input/output hashes;
 - structured run receipts;
 - synthetic-result publication denial;
-- rollback-safe, non-overwriting local publication;
+- complete-first, non-overwriting snapshot publication;
+- content-derived receipt identities and read-only atomic bundle publication;
+- tamper-evident bundle loading through the supplied API;
 - bounded settlement integrity and fail-closed unsupported states;
 - a locked, reproducible 51-test verification gate.
 
@@ -30,3 +32,5 @@ It does not provide or prove:
 - FIA endorsement, affiliation or official rule certification.
 
 The included rule-shaped fixtures are synthetic. No FIA document is distributed in this repository.
+
+Read-only file modes are a local integrity guard, not protection against a filesystem owner or administrator who can deliberately change permissions. Integrity-sensitive consumers must use the supplied loaders, which revalidate content addresses, receipt identity, canonical hashes, regular-file types and publication relationships.

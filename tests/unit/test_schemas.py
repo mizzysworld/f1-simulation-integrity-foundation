@@ -89,6 +89,8 @@ def test_invalid_probabilities_and_independent_axes_rejected() -> None:
         distribution(position_probabilities=(0.7, 0.7), completion_probability=1.2)
     with pytest.raises(ValidationError, match="status axis"):
         distribution(physical_status_probabilities=(0.8, 0.8, 0.0))
+    with pytest.raises(ValidationError, match="classified probability"):
+        distribution(classification_status_probabilities=(0.0, 1.0, 0.0))
 
 
 def test_json_fixtures_are_parseable_canonical_payloads() -> None:

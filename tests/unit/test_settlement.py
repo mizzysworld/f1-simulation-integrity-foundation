@@ -78,8 +78,8 @@ def test_running_retirement_threshold_and_line_crossing_order(toy_event: Event) 
         story(
             toy_event,
             (
-                entry("car-1", 10, 2, elapsed=90),
-                entry("car-2", 10, 1, elapsed=100),
+                entry("car-1", 10, 2, elapsed=100),
+                entry("car-2", 10, 1, elapsed=90),
                 entry("car-3", 9, 1, retired=True),
                 entry("car-4", 9, 2, retired=True),
                 entry("car-5", 8, 1, retired=True),
@@ -130,6 +130,11 @@ def test_elapsed_penalty_requires_complete_group_timing_and_reorders(toy_event: 
     incomplete[2] = entry("car-3", 10, 3)
     with pytest.raises(ValueError, match="timing must be complete"):
         settle(story(toy_event, tuple(incomplete)))
+    contradictory = list(entries)
+    contradictory[0] = entry("car-1", 10, 1, elapsed=110, penalties=(penalty(),))
+    contradictory[1] = entry("car-2", 10, 2, elapsed=100)
+    with pytest.raises(ValueError, match="contradicts Line-crossing order"):
+        settle(story(toy_event, tuple(contradictory)))
 
 
 def test_fail_closed_penalty_combinations_and_free_dq_boolean(toy_event: Event) -> None:
@@ -219,6 +224,13 @@ def test_threshold_rounding_for_57_lap_winner(toy_event: Event) -> None:
     assert result.classification_threshold_laps == 51
     assert rows["car-3"].classification_status == ClassificationStatus.CLASSIFIED
     assert rows["car-4"].classification_status == ClassificationStatus.UNCLASSIFIED
+    huge_laps = 2**53 - 1
+    huge_data = toy_event.model_dump()
+    huge_data["circuit"]["scheduled_laps"] = huge_laps
+    huge_event = Event.model_validate(huge_data)
+    huge_entries = tuple(entry(f"car-{i}", huge_laps, i) for i in range(1, 6))
+    huge_result = settle(story(huge_event, huge_entries, winner_laps=huge_laps))
+    assert huge_result.classification_threshold_laps == 9 * huge_laps // 10
 
 
 def test_unclassified_elapsed_penalty_remains_evidence_consistent(toy_event: Event) -> None:
@@ -298,6 +310,12 @@ def test_forged_public_results_fail_closed(toy_event: Event) -> None:
     with pytest.raises(ValidationError, match="non-increasing"):
         OfficialClassification.model_validate(inverted)
 
+    equal_lap_swap = result.model_dump()
+    equal_lap_swap["entries"][0]["official_position"] = 2
+    equal_lap_swap["entries"][1]["official_position"] = 1
+    with pytest.raises(ValidationError, match="settlement evidence order"):
+        OfficialClassification.model_validate(equal_lap_swap)
+
     def recorded(penalty_id: str, applied_order: int) -> dict[str, object]:
         return {
             "penalty_id": penalty_id,
@@ -324,6 +342,8 @@ def test_forged_public_results_fail_closed(toy_event: Event) -> None:
         OfficialClassification.model_validate(duplicate_order)
 
     multiple_current = result.model_dump()
+    for index, result_entry in enumerate(multiple_current["entries"]):
+        result_entry["elapsed_seconds"] = 100.0 + index
     for index in (0, 1):
         multiple_current["entries"][index]["penalties"] = [
             {

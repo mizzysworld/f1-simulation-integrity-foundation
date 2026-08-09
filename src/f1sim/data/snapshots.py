@@ -7,6 +7,7 @@ import json
 import math
 import os
 import stat
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -149,21 +150,60 @@ def load_snapshot(path: Path) -> Snapshot:
     return snapshot
 
 
+def _validate_existing_snapshot(path: Path, encoded: bytes) -> None:
+    descriptor = -1
+    try:
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode):
+            raise FileExistsError(f"refusing to overwrite immutable snapshot {path}")
+        with os.fdopen(descriptor, "rb") as handle:
+            descriptor = -1
+            existing = handle.read()
+        current = os.stat(path, follow_symlinks=False)
+        if (
+            not stat.S_ISREG(current.st_mode)
+            or (opened.st_dev, opened.st_ino) != (current.st_dev, current.st_ino)
+        ):
+            raise FileExistsError(f"immutable snapshot changed during validation: {path}")
+        if existing != encoded:
+            raise FileExistsError(f"refusing to overwrite immutable snapshot {path}")
+    except FileExistsError:
+        raise
+    except OSError as error:
+        raise FileExistsError(f"refusing to overwrite immutable snapshot {path}") from error
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
 def save_immutable(snapshot: Snapshot, directory: Path) -> Path:
     validate_snapshot_integrity(snapshot)
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f"{snapshot.snapshot_id}.json"
     encoded = _canonical_bytes(snapshot)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=directory, prefix=f".{snapshot.snapshot_id}-", suffix=".tmp"
+    )
+    temporary = Path(temporary_name)
     try:
-        descriptor = os.open(
-            path,
-            os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-            0o644,
-        )
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(encoded)
-    except FileExistsError:
-        mode = path.lstat().st_mode
-        if path.is_symlink() or not stat.S_ISREG(mode) or path.read_bytes() != encoded:
-            raise FileExistsError(f"refusing to overwrite immutable snapshot {path}") from None
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary.chmod(0o444)
+        try:
+            os.link(temporary, path, follow_symlinks=False)
+        except FileExistsError:
+            _validate_existing_snapshot(path, encoded)
+        else:
+            directory_descriptor = os.open(
+                directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+            )
+            try:
+                os.fsync(directory_descriptor)
+            finally:
+                os.close(directory_descriptor)
+    finally:
+        temporary.unlink(missing_ok=True)
     return path

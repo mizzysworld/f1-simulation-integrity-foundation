@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from itertools import pairwise
@@ -259,6 +258,8 @@ class ClassificationEntry(StrictModel):
     no_position_reason: NoPositionReason | None
     final_regulatory_disposition: RegulatoryDisposition
     complete_laps: int = Field(ge=0)
+    same_lap_crossing_order: PositivePosition | None
+    elapsed_seconds: NonNegative | None
     penalties: tuple[Penalty, ...] = ()
 
     @model_validator(mode="after")
@@ -339,7 +340,7 @@ class OfficialClassification(StrictModel):
     def validate_classification(self) -> OfficialClassification:
         if len(self.entries) != self.field_size:
             raise ValueError("entries must equal dynamic field_size")
-        if self.classification_threshold_laps != math.floor(0.9 * self.winner_laps):
+        if self.classification_threshold_laps != 9 * self.winner_laps // 10:
             raise ValueError("classification threshold must equal floor(90% of winner laps)")
         entrant_ids = [entry.entrant_id for entry in self.entries]
         if len(entrant_ids) != len(set(entrant_ids)):
@@ -369,6 +370,58 @@ class OfficialClassification(StrictModel):
                 "the lap threshold"
             )
         penalties = [penalty for entry in self.entries for penalty in entry.penalties]
+        if sum(penalty.affects_current_race for penalty in penalties) > 1:
+            raise ValueError("multiple current-race penalties are outside the bounded contract")
+        groups: dict[int, list[ClassificationEntry]] = {}
+        for entry in ordered:
+            groups.setdefault(entry.complete_laps, []).append(entry)
+        for group in groups.values():
+            if len(group) < 2:
+                continue
+            if any(entry.same_lap_crossing_order is None for entry in group):
+                raise ValueError("same-lap classification requires retained crossing evidence")
+            crossing_order = sorted(
+                group, key=lambda entry: entry.same_lap_crossing_order or 0
+            )
+            elapsed_values = [entry.elapsed_seconds for entry in crossing_order]
+            concrete_elapsed = [value for value in elapsed_values if value is not None]
+            if len(concrete_elapsed) == len(elapsed_values) and any(
+                left > right for left, right in pairwise(concrete_elapsed)
+            ):
+                raise ValueError("elapsed timing contradicts Line-crossing order")
+            elapsed_penalties = [
+                entry
+                for entry in group
+                if any(
+                    penalty.affects_current_race and penalty.penalty_type == "elapsed_time"
+                    for penalty in entry.penalties
+                )
+            ]
+            if elapsed_penalties:
+                if not all(value is not None for value in elapsed_values):
+                    raise ValueError("elapsed timing must be complete for penalized same-lap group")
+
+                def adjusted(entry: ClassificationEntry) -> float:
+                    assert entry.elapsed_seconds is not None
+                    penalty_seconds = sum(
+                        penalty.seconds or 0.0
+                        for penalty in entry.penalties
+                        if penalty.affects_current_race and penalty.penalty_type == "elapsed_time"
+                    )
+                    return entry.elapsed_seconds + penalty_seconds
+
+                expected = sorted(
+                    group,
+                    key=lambda entry: (
+                        adjusted(entry),
+                        entry.same_lap_crossing_order or 0,
+                    ),
+                )
+            else:
+                expected = crossing_order
+            actual = sorted(group, key=lambda entry: entry.official_position or 0)
+            if [entry.entrant_id for entry in actual] != [entry.entrant_id for entry in expected]:
+                raise ValueError("official positions contradict retained settlement evidence order")
         penalty_ids = [penalty.penalty_id for penalty in penalties]
         if len(penalty_ids) != len(set(penalty_ids)):
             raise ValueError("penalty IDs must be globally unique")
@@ -415,6 +468,14 @@ class EntrantDistribution(StrictModel):
         ):
             if abs(sum(axis) - 1) > 1e-9:
                 raise ValueError("each canonical status axis must independently sum to 1")
+        classified_probability = self.classification_status_probabilities[0]
+        if abs(sum(self.position_probabilities) - classified_probability) > 1e-9:
+            raise ValueError("position mass must equal classified probability")
+        unclassified_or_dq = sum(self.classification_status_probabilities[1:])
+        if abs(self.no_official_position_probability - unclassified_or_dq) > 1e-9:
+            raise ValueError(
+                "no-position probability must equal unclassified plus disqualified probability"
+            )
         return self
 
 
@@ -502,6 +563,9 @@ class CanonicalPrediction(StrictModel):
             raise ValueError("prediction distributions must match the event entrant set exactly")
         if any(len(d.position_probabilities) != self.field_size for d in self.distributions):
             raise ValueError("position vector must match dynamic field size")
+        for position in range(self.field_size):
+            if sum(row.position_probabilities[position] for row in self.distributions) > 1 + 1e-9:
+                raise ValueError("position column probability mass cannot exceed 1")
         return self
 
 

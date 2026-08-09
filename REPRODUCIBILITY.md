@@ -13,6 +13,7 @@ uv sync --locked --all-groups
 uv run ruff check .
 uv run mypy src tests
 uv run pytest -q
+uv run python scripts/test_publication_scan.py
 uv run python scripts/publication_scan.py
 uv build
 ```

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import stat
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
@@ -18,7 +19,12 @@ from f1sim.data.snapshots import (
     save_immutable,
 )
 from f1sim.models.baselines import grid_only
-from f1sim.reporting.receipt import prediction_hash, publish_prediction
+from f1sim.reporting.receipt import (
+    load_published_bundle,
+    prediction_hash,
+    publish_prediction,
+    receipt_id_for,
+)
 from f1sim.schemas import CanonicalPrediction, Event, PredictionReceipt, SnapshotIdentity
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
@@ -39,13 +45,41 @@ def make_snapshot(event_id: str = EVENT_ID, *, synthetic: bool = True) -> Snapsh
     return build_snapshot((record(NOW),), NOW, NOW, synthetic=synthetic, event_id=event_id)
 
 
-def test_snapshot_content_id_integrity_and_anti_overwrite(tmp_path: Path) -> None:
+def test_snapshot_content_id_integrity_and_anti_overwrite(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     snapshot = make_snapshot()
+    original_link = os.link
+    observed_complete = False
+
+    def link_and_inspect(
+        source: os.PathLike[str] | str,
+        destination: os.PathLike[str] | str,
+        *,
+        src_dir_fd: int | None = None,
+        dst_dir_fd: int | None = None,
+        follow_symlinks: bool = True,
+    ) -> None:
+        nonlocal observed_complete
+        original_link(
+            source,
+            destination,
+            src_dir_fd=src_dir_fd,
+            dst_dir_fd=dst_dir_fd,
+            follow_symlinks=follow_symlinks,
+        )
+        assert load_snapshot(Path(destination)).snapshot_id == snapshot.snapshot_id
+        observed_complete = True
+
+    monkeypatch.setattr(os, "link", link_and_inspect)
     path = save_immutable(snapshot, tmp_path)
+    assert observed_complete
+    monkeypatch.setattr(os, "link", original_link)
     assert save_immutable(snapshot, tmp_path) == path
     corrupt = snapshot.model_copy(update={"snapshot_hash": "0" * 64})
     with pytest.raises(ValueError, match="content address"):
         save_immutable(corrupt, tmp_path)
+    path.chmod(0o644)
     path.write_text("corrupt", encoding="utf-8")
     with pytest.raises(FileExistsError, match="refusing"):
         save_immutable(snapshot, tmp_path)
@@ -146,6 +180,23 @@ def test_snapshot_loader_reads_opened_inode_during_path_replacement(
     assert loaded.snapshot_id == original_snapshot.snapshot_id
     assert path.is_symlink()
 
+    writer_path = save_immutable(original_snapshot, tmp_path / "writer")
+    writer_backup = writer_path.with_suffix(".opened")
+
+    def replace_writer_after_open(
+        target: os.PathLike[str] | str, flags: int, mode: int = 0o777
+    ) -> int:
+        descriptor = original_open(target, flags, mode)
+        if Path(target) == writer_path and not writer_backup.exists():
+            writer_path.rename(writer_backup)
+            writer_path.symlink_to(alternate_path)
+        return descriptor
+
+    monkeypatch.setattr(os, "open", replace_writer_after_open)
+    with pytest.raises(FileExistsError, match="changed during validation"):
+        save_immutable(original_snapshot, writer_path.parent)
+    assert writer_path.is_symlink()
+
 
 def receipt_for(
     event: Event, snapshot: Snapshot, *, synthetic: bool
@@ -159,7 +210,7 @@ def receipt_for(
     )
     prediction = grid_only(event, snapshot=identity)
     receipt = PredictionReceipt(
-        receipt_id="receipt-test",
+        receipt_id="receipt-pending",
         event_id=event.event_id,
         snapshot_id=snapshot.snapshot_id,
         snapshot_hash=snapshot.snapshot_hash,
@@ -181,6 +232,7 @@ def receipt_for(
         status="complete",
         synthetic=synthetic,
     )
+    receipt = receipt.model_copy(update={"receipt_id": receipt_id_for(receipt)})
     return prediction, receipt
 
 
@@ -202,7 +254,7 @@ def test_synthetic_bypass_flags_are_rejected(toy_event: Event, tmp_path: Path) -
         publish_prediction(forged, forged_receipt, tmp_path, snapshot=Path("/unused"))
 
 
-def test_receipt_synthetic_and_safe_id_are_enforced(toy_event: Event) -> None:
+def test_receipt_synthetic_and_safe_id_are_enforced(toy_event: Event, tmp_path: Path) -> None:
     snapshot = make_snapshot(toy_event.event_id)
     prediction, receipt = receipt_for(toy_event, snapshot, synthetic=True)
     with pytest.raises(ValidationError, match="string_pattern_mismatch"):
@@ -210,6 +262,14 @@ def test_receipt_synthetic_and_safe_id_are_enforced(toy_event: Event) -> None:
     real = Event.model_validate({**toy_event.model_dump(), "is_synthetic": False})
     real_snapshot = make_snapshot(real.event_id, synthetic=False)
     prediction, receipt = receipt_for(real, real_snapshot, synthetic=False)
+    snapshot_path = save_immutable(real_snapshot, tmp_path / "snapshots")
+    with pytest.raises(ValueError, match="receipt identity"):
+        publish_prediction(
+            prediction,
+            receipt.model_copy(update={"receipt_id": "arbitrary-one"}),
+            tmp_path / "out",
+            snapshot=snapshot_path,
+        )
     with pytest.raises(ValueError, match="synthetic mismatch"):
         publish_prediction(
             prediction,
@@ -284,6 +344,24 @@ def test_receipt_integrity_and_rollback_safe_pair(
     )
     assert prediction_path.parent == receipt_path.parent == output_dir / receipt.receipt_id
     assert prediction_path.parent.is_symlink()
+    loaded_prediction, loaded_receipt = load_published_bundle(prediction_path.parent)
+    assert loaded_prediction == prediction
+    assert loaded_receipt == receipt
+    assert stat.S_IMODE(prediction_path.resolve().stat().st_mode) == 0o444
+    assert stat.S_IMODE(receipt_path.resolve().stat().st_mode) == 0o444
+    assert stat.S_IMODE(prediction_path.parent.resolve().stat().st_mode) == 0o555
+    with pytest.raises(PermissionError):
+        receipt_path.write_text("mutable", encoding="utf-8")
+
+    bundle = receipt_path.parent.resolve()
+    os.chmod(bundle, 0o755)
+    os.chmod(receipt_path.resolve(), 0o644)
+    receipt_path.write_text(
+        receipt.model_dump_json(indent=2).replace(receipt.receipt_id, "receipt-forged"),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="receipt identity"):
+        load_published_bundle(prediction_path.parent)
 
 
 def test_publication_never_overwrites_concurrent_destination(
