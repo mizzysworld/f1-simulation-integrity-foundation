@@ -2,7 +2,7 @@
 
 **Deterministic simulation-integrity and publication-evidence reference**
 
-> **Status:** public Phase 0B.2 reference candidate. The branch contains the bounded source, synthetic fixtures, locked dependencies, public CI, reproducibility instructions and fail-closed publication checks required for independent review.
+> **Status:** immutable public reference released as [`v0.1.1`](https://github.com/mizzysworld/f1-simulation-integrity-foundation/releases/tag/v0.1.1). The release contains the bounded source, synthetic fixtures, locked dependencies, public CI, reproducibility instructions and fail-closed publication checks used for independent review.
 
 This project demonstrates transferable engineering for traceable baseline runs, cutoff-bound data handling, deterministic artifacts and publication integrity in an F1 prediction context.
 
@@ -33,7 +33,7 @@ uv run python scripts/publication_scan.py
 uv build
 ```
 
-The behavioral suite contains **51 tests**. CI runs the complete gate on Python 3.12, 3.13 and 3.14 from the locked dependency graph.
+The behavioral suite contains **55 tests**. CI runs the complete gate on Python 3.12, 3.13 and 3.14 from the locked dependency graph.
 
 See [Reproducibility](REPRODUCIBILITY.md), [requirements traceability](docs/requirements-traceability.md), [behavioral verification](docs/behavioral-verification-map.md), and [claims and limitations](CLAIMS_AND_LIMITATIONS.md).
 

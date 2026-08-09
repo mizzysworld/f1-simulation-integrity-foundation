@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "f1-simulation-integrity-foundation"
-version = "0.1.0"
+version = "0.1.1"
 description = "Bounded deterministic simulation-integrity and publication-evidence reference"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
