@@ -49,9 +49,7 @@ def _validate_order(entries: list[RaceStoryEntry]) -> None:
         crossing_order = sorted(group, key=lambda entry: entry.same_lap_crossing_order or 0)
         elapsed = [entry.elapsed_seconds for entry in crossing_order]
         concrete_elapsed = [value for value in elapsed if value is not None]
-        if len(concrete_elapsed) == len(elapsed) and any(
-            left > right for left, right in pairwise(concrete_elapsed)
-        ):
+        if any(left > right for left, right in pairwise(concrete_elapsed)):
             raise ValueError("elapsed timing contradicts Line-crossing order")
 
 

@@ -344,6 +344,55 @@ def test_forged_public_results_fail_closed(toy_event: Event) -> None:
     with pytest.raises(ValidationError, match="elapsed timing contradicts"):
         OfficialClassification.model_validate(contradictory_dq_timing)
 
+    partial_timing_entries = (
+        entry(
+            "car-1",
+            10,
+            1,
+            elapsed=80,
+            penalties=(penalty("official_disqualification", seconds=None),),
+        ),
+        entry("car-2", 10, 2, elapsed=None),
+        entry("car-3", 10, 3, elapsed=100),
+        entry("car-4", 9, 1, retired=True, elapsed=103),
+        entry("car-5", 9, 2, retired=True, elapsed=104),
+    )
+    partial_timing_result = settle(story(toy_event, partial_timing_entries))
+    forged_partial_timing = partial_timing_result.model_dump()
+    forged_partial_timing["entries"][0]["elapsed_seconds"] = 100
+    forged_partial_timing["entries"][2]["elapsed_seconds"] = 90
+    with pytest.raises(ValidationError, match="elapsed timing contradicts"):
+        OfficialClassification.model_validate(forged_partial_timing)
+    contradictory_partial_story = story(
+        toy_event,
+        (
+            partial_timing_entries[0].model_copy(update={"elapsed_seconds": 100}),
+            partial_timing_entries[1],
+            partial_timing_entries[2].model_copy(update={"elapsed_seconds": 90}),
+            partial_timing_entries[3],
+            partial_timing_entries[4],
+        ),
+    )
+    with pytest.raises(ValueError, match="elapsed timing contradicts"):
+        settle(contradictory_partial_story)
+
+    singleton_result = settle(
+        story(
+            toy_event,
+            (
+                entry("car-1", 10, 1),
+                entry("car-2", 10, 2),
+                entry("car-3", 9, 1, retired=True),
+                entry("car-4", 8, 1, retired=True),
+                entry("car-5", 8, 2, retired=True),
+            ),
+        )
+    )
+    forged_singleton_order = singleton_result.model_dump()
+    forged_singleton_order["entries"][2]["same_lap_crossing_order"] = 999
+    with pytest.raises(ValidationError, match="crossing evidence must be unique and contiguous"):
+        OfficialClassification.model_validate(forged_singleton_order)
+
     def recorded(penalty_id: str, applied_order: int) -> dict[str, object]:
         return {
             "penalty_id": penalty_id,

@@ -377,8 +377,6 @@ class OfficialClassification(StrictModel):
             if entry.start_status != StartStatus.DNS:
                 evidence_groups.setdefault(entry.complete_laps, []).append(entry)
         for evidence_group in evidence_groups.values():
-            if len(evidence_group) < 2:
-                continue
             crossing_values = [entry.same_lap_crossing_order for entry in evidence_group]
             if any(value is None for value in crossing_values) or sorted(
                 value for value in crossing_values if value is not None
@@ -389,9 +387,7 @@ class OfficialClassification(StrictModel):
             )
             elapsed_values = [entry.elapsed_seconds for entry in crossing_order]
             concrete_elapsed = [value for value in elapsed_values if value is not None]
-            if len(concrete_elapsed) == len(elapsed_values) and any(
-                left > right for left, right in pairwise(concrete_elapsed)
-            ):
+            if any(left > right for left, right in pairwise(concrete_elapsed)):
                 raise ValueError("elapsed timing contradicts Line-crossing order")
         groups: dict[int, list[ClassificationEntry]] = {}
         for entry in ordered:
@@ -406,9 +402,7 @@ class OfficialClassification(StrictModel):
             )
             elapsed_values = [entry.elapsed_seconds for entry in crossing_order]
             concrete_elapsed = [value for value in elapsed_values if value is not None]
-            if len(concrete_elapsed) == len(elapsed_values) and any(
-                left > right for left, right in pairwise(concrete_elapsed)
-            ):
+            if any(left > right for left, right in pairwise(concrete_elapsed)):
                 raise ValueError("elapsed timing contradicts Line-crossing order")
             elapsed_penalties = [
                 entry
