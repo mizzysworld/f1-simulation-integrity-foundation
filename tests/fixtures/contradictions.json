@@ -1,0 +1,12 @@
+{
+  "duplicate_entrant": {
+    "event_id":"bad","name":"Bad","event_date":"2026-01-01",
+    "circuit":{"circuit_id":"c","name":"C","scheduled_laps":1},
+    "ruleset":{"ruleset_id":"r","source_url":"official.pdf","issue":"1","publication_date":"2026-01-01","effective_event_range":"one"},
+    "entrants":[
+      {"entrant_id":"x","driver_name":"X","team_id":"t","assumed_start_location":"grid","grid_position":1},
+      {"entrant_id":"x","driver_name":"Y","team_id":"t","assumed_start_location":"grid","grid_position":2}
+    ],"is_synthetic":true
+  },
+  "contradictory_entry": {"entrant_id":"x","start_status":"dns","terminal_physical_status":"retired","complete_laps":0,"same_lap_crossing_order":null,"elapsed_seconds":null,"penalties":[]}
+}

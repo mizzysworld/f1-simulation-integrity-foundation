@@ -1,0 +1,13 @@
+{
+  "event_id":"synthetic-dynamic-6","name":"Dynamic Six","event_date":"2026-01-01",
+  "circuit":{"circuit_id":"dynamic","name":"Dynamic","scheduled_laps":50},
+  "ruleset":{"ruleset_id":"fia-f1-2026-section-b-issue-07","source_url":"https://fia.example/rules.pdf","issue":"07","publication_date":"2026-06-25","effective_event_range":"2026-current"},
+  "entrants":[
+    {"entrant_id":"e1","driver_name":"D1","team_id":"t1","assumed_start_location":"grid","grid_position":1},
+    {"entrant_id":"e2","driver_name":"D2","team_id":"t1","assumed_start_location":"grid","grid_position":2},
+    {"entrant_id":"e3","driver_name":"D3","team_id":"t2","assumed_start_location":"grid","grid_position":3},
+    {"entrant_id":"e4","driver_name":"D4","team_id":"t2","assumed_start_location":"grid","grid_position":4},
+    {"entrant_id":"e5","driver_name":"D5","team_id":"t3","assumed_start_location":"pit_lane","grid_position":null},
+    {"entrant_id":"e6","driver_name":"D6","team_id":"t3","assumed_start_location":"known_dns","grid_position":null}
+  ],"is_synthetic":true
+}

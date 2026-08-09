@@ -1,0 +1,71 @@
+"""Adversarial self-test for publication-scan failure modes."""
+
+from __future__ import annotations
+
+import tempfile
+from collections.abc import Callable
+from pathlib import Path
+
+import publication_scan
+
+Builder = Callable[[Path], object]
+
+
+def write_safe_tree(root: Path) -> None:
+    source = root / "src" / "safe"
+    source.mkdir(parents=True)
+    (source / "module.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (root / "README.md").write_text("safe synthetic reference\n", encoding="utf-8")
+
+
+def expect_failure(label: str, builder: Builder) -> None:
+    with tempfile.TemporaryDirectory(prefix="f1-publication-scan-") as directory:
+        root = Path(directory)
+        write_safe_tree(root)
+        builder(root)
+        publication_scan.ROOT = root
+        try:
+            publication_scan.main()
+        except ValueError:
+            return
+        raise AssertionError(f"publication scan failed open for {label}")
+
+
+def main() -> None:
+    original_root = publication_scan.ROOT
+    try:
+        with tempfile.TemporaryDirectory(prefix="f1-publication-scan-clean-") as directory:
+            root = Path(directory)
+            write_safe_tree(root)
+            publication_scan.ROOT = root
+            assert publication_scan.main() == 0
+
+        expect_failure(
+            "private path",
+            lambda root: (root / "README.md").write_text(
+                "/" + "Users/example/private\n", encoding="utf-8"
+            ),
+        )
+        expect_failure(
+            "blocked artifact",
+            lambda root: (root / "internal.pdf").write_text("not publishable\n", encoding="utf-8"),
+        )
+        expect_failure(
+            "network import",
+            lambda root: (root / "src" / "safe" / "network.py").write_text(
+                "import " + "requests\n", encoding="utf-8"
+            ),
+        )
+        expect_failure(
+            "dynamic execution",
+            lambda root: (root / "src" / "safe" / "dynamic.py").write_text(
+                "e" + "xec('pass')\n", encoding="utf-8"
+            ),
+        )
+    finally:
+        publication_scan.ROOT = original_root
+    print("publication scan self-test: PASS (5/5)")
+
+
+if __name__ == "__main__":
+    main()
