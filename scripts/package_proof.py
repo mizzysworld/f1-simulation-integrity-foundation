@@ -10,14 +10,21 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
-BLOCKED_SUFFIXES = {".docx", ".env", ".key", ".p12", ".pdf", ".pem", ".pyc", ".zip"}
+BLOCKED_SUFFIXES = {".docx", ".key", ".p12", ".pdf", ".pem", ".pyc", ".zip"}
+BLOCKED_NAMES = {"credentials.json", "token.json", ".ds_store", ".env"}
 
 
 def validate_name(name: str) -> None:
     path = PurePosixPath(name)
     if path.is_absolute() or ".." in path.parts or "" in path.parts:
         raise ValueError(f"unsafe archive member: {name}")
-    if path.suffix.lower() in BLOCKED_SUFFIXES or "__pycache__" in path.parts:
+    member_name = path.name.lower()
+    if (
+        member_name in BLOCKED_NAMES
+        or member_name.startswith(".env.")
+        or path.suffix.lower() in BLOCKED_SUFFIXES
+        or "__pycache__" in path.parts
+    ):
         raise ValueError(f"blocked archive member: {name}")
 
 

@@ -57,6 +57,16 @@ def main() -> None:
             write_private_bytecode,
         )
         expect_failure(
+            "dotenv file",
+            lambda root: (root / ".env").write_text("SAFE_PLACEHOLDER=1\n", encoding="utf-8"),
+        )
+        expect_failure(
+            "dotenv variant",
+            lambda root: (root / ".env.local").write_text(
+                "SAFE_PLACEHOLDER=1\n", encoding="utf-8"
+            ),
+        )
+        expect_failure(
             "network import",
             lambda root: (root / "src" / "safe" / "network.py").write_text(
                 "import " + "requests\n", encoding="utf-8"
@@ -70,7 +80,7 @@ def main() -> None:
         )
     finally:
         publication_scan.ROOT = original_root
-    print("publication scan self-test: PASS (5/5)")
+    print("publication scan self-test: PASS (7/7)")
 
 
 if __name__ == "__main__":

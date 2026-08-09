@@ -45,6 +45,17 @@ def receipt_id_for(receipt: PredictionReceipt) -> str:
 def _validate_prediction_receipt(
     prediction: CanonicalPrediction, receipt: PredictionReceipt
 ) -> None:
+    if receipt.synthetic != prediction.synthetic:
+        raise ValueError("prediction and receipt synthetic mismatch")
+    if prediction.baseline_input.event.is_synthetic:
+        raise ValueError("embedded synthetic events cannot be published as real forecasts")
+    if prediction.synthetic:
+        raise ValueError("synthetic fixtures cannot be published as real forecasts")
+    if receipt.status != "complete":
+        raise ValueError("only complete runs can be published")
+    envelope_snapshot = prediction.baseline_input.snapshot
+    if envelope_snapshot is None:
+        raise ValueError("non-synthetic publication requires a snapshot")
     relationships = (
         (prediction.event_id, receipt.event_id, "event"),
         (prediction.model_id, receipt.model_id, "model"),
@@ -54,6 +65,11 @@ def _validate_prediction_receipt(
         (prediction.input_hash, prediction.baseline_input.canonical_hash(), "envelope hash"),
         (prediction.input_hash, receipt.input_hash, "input hash"),
         (prediction_hash(prediction), receipt.output_hash, "output hash"),
+        (envelope_snapshot.snapshot_id, receipt.snapshot_id, "snapshot ID"),
+        (envelope_snapshot.snapshot_hash, receipt.snapshot_hash, "snapshot hash"),
+        (envelope_snapshot.cutoff, receipt.cutoff, "snapshot cutoff"),
+        (envelope_snapshot.event_id, prediction.event_id, "snapshot event"),
+        (envelope_snapshot.synthetic, prediction.synthetic, "snapshot synthetic state"),
     )
     for actual, expected, label in relationships:
         if actual != expected:

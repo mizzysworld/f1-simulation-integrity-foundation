@@ -384,6 +384,15 @@ class OfficialClassification(StrictModel):
                 value for value in crossing_values if value is not None
             ) != list(range(1, len(evidence_group) + 1)):
                 raise ValueError("crossing evidence must be unique and contiguous")
+            crossing_order = sorted(
+                evidence_group, key=lambda entry: entry.same_lap_crossing_order or 0
+            )
+            elapsed_values = [entry.elapsed_seconds for entry in crossing_order]
+            concrete_elapsed = [value for value in elapsed_values if value is not None]
+            if len(concrete_elapsed) == len(elapsed_values) and any(
+                left > right for left, right in pairwise(concrete_elapsed)
+            ):
+                raise ValueError("elapsed timing contradicts Line-crossing order")
         groups: dict[int, list[ClassificationEntry]] = {}
         for entry in ordered:
             groups.setdefault(entry.complete_laps, []).append(entry)

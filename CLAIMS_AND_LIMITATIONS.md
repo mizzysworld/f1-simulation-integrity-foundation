@@ -12,7 +12,7 @@ This reference supports claims about:
 - synthetic-result publication denial;
 - complete-first, non-overwriting snapshot publication;
 - content-derived receipt identities and read-only atomic bundle publication;
-- tamper-evident bundle loading through the supplied API;
+- tamper-evident bundle loading with publisher/loader relationship parity through the supplied API;
 - bounded settlement integrity and fail-closed unsupported states;
 - a locked, reproducible 51-test verification gate.
 

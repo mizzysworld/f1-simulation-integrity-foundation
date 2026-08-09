@@ -363,6 +363,30 @@ def test_receipt_integrity_and_rollback_safe_pair(
     with pytest.raises(ValueError, match="receipt identity"):
         load_published_bundle(prediction_path.parent)
 
+    def forged_bundle(
+        suffix: str, changes: dict[str, object], expected: str
+    ) -> None:
+        forged = receipt.model_copy(update=changes)
+        forged = forged.model_copy(update={"receipt_id": receipt_id_for(forged)})
+        bundle_directory = output_dir / f".bundle-{forged.receipt_id}-{suffix}"
+        bundle_directory.mkdir()
+        (bundle_directory / "prediction.json").write_text(
+            prediction.model_dump_json(), encoding="utf-8"
+        )
+        (bundle_directory / "receipt.json").write_text(
+            forged.model_dump_json(), encoding="utf-8"
+        )
+        published = output_dir / forged.receipt_id
+        published.symlink_to(bundle_directory.name, target_is_directory=True)
+        with pytest.raises(ValueError, match=expected):
+            load_published_bundle(published)
+
+    forged_bundle("synthetic", {"synthetic": True}, "synthetic mismatch")
+    forged_bundle("status", {"status": "failed"}, "only complete")
+    forged_bundle("snapshot-id", {"snapshot_id": "snap-0000000000000000"}, "snapshot ID")
+    forged_bundle("snapshot-hash", {"snapshot_hash": "0" * 64}, "snapshot hash")
+    forged_bundle("cutoff", {"cutoff": NOW + timedelta(seconds=1)}, "snapshot cutoff")
+
 
 def test_publication_never_overwrites_concurrent_destination(
     toy_event: Event, tmp_path: Path

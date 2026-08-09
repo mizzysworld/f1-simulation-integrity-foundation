@@ -21,8 +21,8 @@ IGNORED_PARTS = {
     "build",
     "dist",
 }
-BLOCKED_SUFFIXES = {".docx", ".env", ".key", ".p12", ".pdf", ".pem", ".pyc", ".zip"}
-BLOCKED_NAMES = {"credentials.json", "token.json", ".DS_Store"}
+BLOCKED_SUFFIXES = {".docx", ".key", ".p12", ".pdf", ".pem", ".pyc", ".zip"}
+BLOCKED_NAMES = {"credentials.json", "token.json", ".ds_store", ".env"}
 TEXT_PATTERNS = {
     "absolute macOS user path": re.compile(r"/Users/[A-Za-z0-9._-]+/"),
     "absolute Linux home path": re.compile(r"/home/[A-Za-z0-9._-]+/"),
@@ -74,6 +74,15 @@ def scanned_files() -> list[Path]:
     return files
 
 
+def blocked_artifact(path: Path) -> bool:
+    name = path.name.lower()
+    return (
+        name in BLOCKED_NAMES
+        or name.startswith(".env.")
+        or path.suffix.lower() in BLOCKED_SUFFIXES
+    )
+
+
 def inspect_runtime(path: Path, text: str) -> None:
     tree = ast.parse(text, filename=str(path.relative_to(ROOT)))
     for node in ast.walk(tree):
@@ -108,7 +117,7 @@ def main() -> int:
     files = scanned_files()
     for path in files:
         relative = path.relative_to(ROOT)
-        if path.name in BLOCKED_NAMES or path.suffix.lower() in BLOCKED_SUFFIXES:
+        if blocked_artifact(path):
             raise ValueError(f"blocked publication artifact: {relative}")
         encoded = path.read_bytes()
         if b"\x00" in encoded:

@@ -321,6 +321,29 @@ def test_forged_public_results_fail_closed(toy_event: Event) -> None:
     with pytest.raises(ValidationError, match="crossing evidence must be unique and contiguous"):
         OfficialClassification.model_validate(duplicate_crossing)
 
+    dq_result = settle(
+        story(
+            toy_event,
+            (
+                entry("car-1", 10, 1, elapsed=100),
+                entry(
+                    "car-2",
+                    10,
+                    2,
+                    elapsed=101,
+                    penalties=(penalty("official_disqualification", seconds=None),),
+                ),
+                entry("car-3", 10, 3, elapsed=102),
+                entry("car-4", 9, 1, retired=True, elapsed=103),
+                entry("car-5", 9, 2, retired=True, elapsed=104),
+            ),
+        )
+    )
+    contradictory_dq_timing = dq_result.model_dump()
+    contradictory_dq_timing["entries"][1]["elapsed_seconds"] = 50
+    with pytest.raises(ValidationError, match="elapsed timing contradicts"):
+        OfficialClassification.model_validate(contradictory_dq_timing)
+
     def recorded(penalty_id: str, applied_order: int) -> dict[str, object]:
         return {
             "penalty_id": penalty_id,
