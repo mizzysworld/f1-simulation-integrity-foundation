@@ -48,6 +48,19 @@ BLOCKED_ATTRIBUTES = {
 }
 
 
+def ignored_generated_path(relative: Path) -> bool:
+    return any(
+        part in IGNORED_PARTS or part.lower().endswith(".egg-info")
+        for part in relative.parts
+    )
+
+
+def validate_tracked_path(path: Path) -> None:
+    relative = path.relative_to(ROOT)
+    if ignored_generated_path(relative):
+        raise ValueError(f"tracked generated path is not publishable: {relative}")
+
+
 def scanned_files() -> list[Path]:
     tracked: set[Path] | None = None
     if (ROOT / ".git").exists():
@@ -60,12 +73,14 @@ def scanned_files() -> list[Path]:
         tracked = {
             Path(item.decode()) for item in result.stdout.split(b"\0") if item
         }
+        for relative in tracked:
+            validate_tracked_path(ROOT / relative)
     files: list[Path] = []
     for path in sorted(ROOT.rglob("*")):
         relative = path.relative_to(ROOT)
         if "__pycache__" in relative.parts and tracked is not None and relative not in tracked:
             continue
-        if any(part in IGNORED_PARTS for part in relative.parts):
+        if ignored_generated_path(relative):
             continue
         if path.is_symlink():
             raise ValueError(f"symlink is not publishable: {relative}")

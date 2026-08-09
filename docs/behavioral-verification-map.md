@@ -14,6 +14,6 @@ Additional non-pytest gates:
 
 - Ruff lint/import policy;
 - strict MyPy over 13 source/test files;
-- fail-closed publication scan with a 7/7 adversarial self-test;
+- fail-closed publication scan with an 8/8 adversarial self-test;
 - wheel and source-distribution member inspection with an 11/11 adversarial self-test;
 - Python 3.12, 3.13 and 3.14 CI matrix.

@@ -78,9 +78,15 @@ def main() -> None:
                 "e" + "xec('pass')\n", encoding="utf-8"
             ),
         )
+        try:
+            publication_scan.validate_tracked_path(root / ".venv" / "generated.py")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("tracked generated directory was silently ignored")
     finally:
         publication_scan.ROOT = original_root
-    print("publication scan self-test: PASS (7/7)")
+    print("publication scan self-test: PASS (8/8)")
 
 
 if __name__ == "__main__":
