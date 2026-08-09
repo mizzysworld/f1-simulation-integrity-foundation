@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import stat
 import sys
 import tarfile
 import zipfile
@@ -15,6 +16,13 @@ BLOCKED_NAMES = {"credentials.json", "token.json", ".ds_store", ".env"}
 
 
 def validate_name(name: str) -> None:
+    if (
+        not name
+        or "\\" in name
+        or "\x00" in name
+        or (len(name) >= 2 and name[0].isalpha() and name[1] == ":")
+    ):
+        raise ValueError(f"unsafe archive member: {name}")
     path = PurePosixPath(name)
     if path.is_absolute() or ".." in path.parts or "" in path.parts:
         raise ValueError(f"unsafe archive member: {name}")
@@ -28,15 +36,23 @@ def validate_name(name: str) -> None:
         raise ValueError(f"blocked archive member: {name}")
 
 
+def validate_wheel_member(member: zipfile.ZipInfo) -> None:
+    validate_name(member.filename)
+    mode = (member.external_attr >> 16) & 0xFFFF
+    member_type = stat.S_IFMT(mode)
+    if member_type not in {0, stat.S_IFREG, stat.S_IFDIR}:
+        raise ValueError(f"unsafe wheel member type: {member.filename}")
+
+
 def main() -> int:
     wheels = sorted(DIST.glob("*.whl"))
     sdists = sorted(DIST.glob("*.tar.gz"))
     if len(wheels) != 1 or len(sdists) != 1:
         raise ValueError("expected exactly one wheel and one source distribution")
     with zipfile.ZipFile(wheels[0]) as archive:
-        wheel_names = archive.namelist()
-        for name in wheel_names:
-            validate_name(name)
+        wheel_members = archive.infolist()
+        for member in wheel_members:
+            validate_wheel_member(member)
     with tarfile.open(sdists[0], "r:gz") as archive:
         sdist_members = archive.getmembers()
         for member in sdist_members:
@@ -48,7 +64,7 @@ def main() -> int:
             {
                 "status": "PASS",
                 "wheel": wheels[0].name,
-                "wheelMembers": len(wheel_names),
+                "wheelMembers": len(wheel_members),
                 "sdist": sdists[0].name,
                 "sdistMembers": len(sdist_members),
             },
