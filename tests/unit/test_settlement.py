@@ -117,6 +117,27 @@ def test_known_dns_and_evidence_backed_official_disqualification(toy_event: Even
     assert rows["car-5"].no_position_reason == NoPositionReason.DNS
 
 
+def test_dns_story_entry_rejects_line_crossing_and_timing_evidence() -> None:
+    with pytest.raises(ValidationError, match="DNS cannot carry Line-crossing or elapsed"):
+        entry("car-5", 0, 999, dns=True, elapsed=123.0)
+
+
+def test_dns_classification_rejects_line_crossing_and_timing_evidence() -> None:
+    with pytest.raises(ValidationError, match="DNS cannot carry Line-crossing or elapsed"):
+        ClassificationEntry(
+            entrant_id="car-5",
+            start_status=StartStatus.DNS,
+            terminal_physical_status=PhysicalStatus.DID_NOT_START,
+            classification_status=ClassificationStatus.UNCLASSIFIED,
+            official_position=None,
+            no_position_reason=NoPositionReason.DNS,
+            final_regulatory_disposition=RegulatoryDisposition.VALID,
+            complete_laps=0,
+            same_lap_crossing_order=999,
+            elapsed_seconds=123.0,
+        )
+
+
 def test_elapsed_penalty_requires_complete_group_timing_and_reorders(toy_event: Event) -> None:
     entries = (
         entry("car-1", 10, 1, elapsed=100, penalties=(penalty(),)),
@@ -259,6 +280,8 @@ def test_public_classification_contract_rejects_impossible_states(toy_event: Eve
         official_position=1,
         no_position_reason=None,
         complete_laps=10,
+        same_lap_crossing_order=None,
+        elapsed_seconds=None,
     )
     with pytest.raises(ValidationError, match="DNS classification fields"):
         ClassificationEntry.model_validate(bad_row)

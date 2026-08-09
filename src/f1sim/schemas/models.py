@@ -177,6 +177,10 @@ class RaceStoryEntry(StrictModel):
             raise ValueError("DNS and did_not_physically_start must agree")
         if dns and self.complete_laps != 0:
             raise ValueError("DNS cannot complete laps")
+        if dns and (
+            self.same_lap_crossing_order is not None or self.elapsed_seconds is not None
+        ):
+            raise ValueError("DNS cannot carry Line-crossing or elapsed timing evidence")
         if len({p.penalty_id for p in self.penalties}) != len(self.penalties):
             raise ValueError("duplicate penalty_id")
         current = [p for p in self.penalties if p.affects_current_race]
@@ -274,6 +278,8 @@ class ClassificationEntry(StrictModel):
             raise ValueError("multiple current-race penalties are outside the bounded contract")
         is_dns = self.start_status == StartStatus.DNS
         if is_dns:
+            if self.same_lap_crossing_order is not None or self.elapsed_seconds is not None:
+                raise ValueError("DNS cannot carry Line-crossing or elapsed timing evidence")
             if (
                 self.terminal_physical_status != PhysicalStatus.DID_NOT_START
                 or self.classification_status != ClassificationStatus.UNCLASSIFIED

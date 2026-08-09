@@ -13,9 +13,9 @@ This reference supports claims about:
 - complete-first, non-overwriting snapshot publication;
 - content-derived receipt identities and read-only atomic bundle publication;
 - tamper-evident bundle loading with publisher/loader relationship parity through the supplied API;
-- bounded settlement integrity with DQ-inclusive group-local `1..N` crossing order, partial-known elapsed chronology and fail-closed unsupported states;
+- bounded settlement integrity with DNS timing-evidence denial, DQ-inclusive group-local `1..N` crossing order, partial-known elapsed chronology and fail-closed unsupported states;
 - coherent physical/classification marginals and contiguous non-increasing position occupancy;
-- a locked, reproducible 53-test verification gate.
+- a locked, reproducible 55-test verification gate.
 
 ## Explicit non-claims
 
