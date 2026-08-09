@@ -91,6 +91,22 @@ def test_invalid_probabilities_and_independent_axes_rejected() -> None:
         distribution(physical_status_probabilities=(0.8, 0.8, 0.0))
     with pytest.raises(ValidationError, match="classified probability"):
         distribution(classification_status_probabilities=(0.0, 1.0, 0.0))
+    with pytest.raises(ValidationError, match="physical running probability"):
+        distribution(
+            completion_probability=1.0,
+            retirement_probability=0.0,
+            physical_status_probabilities=(0.0, 1.0, 0.0),
+        )
+    with pytest.raises(ValidationError, match="physical retirement probability"):
+        distribution(
+            completion_probability=0.5,
+            retirement_probability=0.5,
+            physical_status_probabilities=(0.5, 0.4, 0.1),
+        )
+    with pytest.raises(ValidationError, match="disqualification probability"):
+        distribution(
+            regulatory_disposition_probabilities=(0.0, 0.0, 1.0),
+        )
 
 
 def test_json_fixtures_are_parseable_canonical_payloads() -> None:

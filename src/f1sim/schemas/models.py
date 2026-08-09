@@ -478,10 +478,25 @@ class EntrantDistribution(StrictModel):
             self.classification_status_probabilities,
             self.regulatory_disposition_probabilities,
         ):
-            if abs(sum(axis) - 1) > 1e-9:
-                raise ValueError("each canonical status axis must independently sum to 1")
+            if abs(sum(axis) - 1.0) > 1e-9:
+                raise ValueError("each status axis must sum to 1")
+        if abs(self.completion_probability - self.physical_status_probabilities[0]) > 1e-9:
+            raise ValueError("completion probability must equal physical running probability")
+        if abs(self.retirement_probability - self.physical_status_probabilities[1]) > 1e-9:
+            raise ValueError("retirement probability must equal physical retirement probability")
+        if (
+            abs(
+                self.classification_status_probabilities[2]
+                - self.regulatory_disposition_probabilities[2]
+            )
+            > 1e-9
+        ):
+            raise ValueError(
+                "classification and regulatory disqualification probability must agree"
+            )
+        position_mass = sum(self.position_probabilities)
         classified_probability = self.classification_status_probabilities[0]
-        if abs(sum(self.position_probabilities) - classified_probability) > 1e-9:
+        if abs(position_mass - classified_probability) > 1e-9:
             raise ValueError("position mass must equal classified probability")
         unclassified_or_dq = sum(self.classification_status_probabilities[1:])
         if abs(self.no_official_position_probability - unclassified_or_dq) > 1e-9:

@@ -5,7 +5,7 @@ The public suite contains exactly **51 collected tests**.
 | Test module | Collected cases | Primary scope |
 |---|---:|---|
 | `tests/unit/test_baselines.py` | 15 | dynamic field sizes, three baselines, known-DNS handling, canonical parameter hashing, non-finite inputs |
-| `tests/unit/test_schemas.py` | 6 | strict event/start/status schemas, finite values, independent probability axes, JSON fixtures |
+| `tests/unit/test_schemas.py` | 6 | strict event/start/status schemas, finite values, scalar-to-physical and classification-to-regulatory probability coherence, JSON fixtures |
 | `tests/unit/test_settlement.py` | 13 | threshold classification, line-crossing evidence, bounded penalties, DQ/DNS, forged-state rejection |
 | `tests/unit/test_snapshots.py` | 17 | canonical snapshots, cutoff enforcement, tamper/symlink rejection, receipt binding, atomic publication |
 | **Total** | **51** | Full Phase 0B.2 behavioral gate |
